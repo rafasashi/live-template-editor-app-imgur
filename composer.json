@@ -1,0 +1,5 @@
+{
+    "require": {
+        "j0k3r/php-imgur-api-client": "^3.0"
+    }
+}
