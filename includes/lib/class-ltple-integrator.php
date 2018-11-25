@@ -27,7 +27,7 @@ class LTPLE_Integrator_Imgur {
 			
 			$imgur_consumer_key 		= array_search('imgur_consumer_key', $parameters['key']);
 			$imgur_consumer_secret 		= array_search('imgur_consumer_secret', $parameters['key']);
-			$imgur_oauth_callback 		= $this->parent->urls->editor;
+			$imgur_oauth_callback 		= $this->parent->urls->apps;
 
 			if( !empty($parameters['value'][$imgur_consumer_key]) && !empty($parameters['value'][$imgur_consumer_secret]) ){
 			
@@ -150,8 +150,12 @@ class LTPLE_Integrator_Imgur {
 					
 					$this->access_token = $client->getAccessToken();
 					
-					//flush session
-					session_destroy();					
+					if(!empty($_SESSION)){
+						
+						//flush session
+						
+						$_SESSION = array();			
+					}					
 					
 					//store access_token in session					
 					$_SESSION['access_token'] = $this->access_token;
@@ -215,11 +219,12 @@ class LTPLE_Integrator_Imgur {
 						$_SESSION['message'] .= '</div>';						
 					}
 				}
-				else{
-					
+				elseif(!empty($_SESSION)){
+						
 					//flush session
-					session_destroy();					
-				}
+						
+					$_SESSION = array();			
+				}	
 			}
 		}
 	}
