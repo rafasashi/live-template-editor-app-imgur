@@ -63,9 +63,13 @@ class LTPLE_Integrator_Imgur {
 			}
 		}
 	}
+	
+	public function init_app(){	
+		
+	}
 
 	public function appImportImg(){
-		
+	
 		if(!empty($_REQUEST['id'])){
 		
 			if( $this->app = $this->parent->apps->getAppData( $_REQUEST['id'], $this->parent->user->ID, true ) ){
