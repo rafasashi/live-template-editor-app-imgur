@@ -49,7 +49,7 @@ class LTPLE_Integrator_Imgur extends LTPLE_Client_Integrator {
 	}
 	
 	public function appImportImg(){
-	
+		
 		if(!empty($_REQUEST['id'])){
 		
 			if( $this->app = $this->parent->apps->getAppData( $_REQUEST['id'], $this->parent->user->ID, true ) ){
@@ -107,7 +107,7 @@ class LTPLE_Integrator_Imgur extends LTPLE_Client_Integrator {
 		
 		if( isset($_REQUEST['action']) ){
 			
-			if( !$token = $this->parent->session->get_user_data('access_token') ){
+			if( !$access_token = $this->parent->session->get_user_data('access_token') ){
 
 				$this->parent->session->update_user_data('app','imgur');
 				$this->parent->session->update_user_data('action',$_REQUEST['action']);
@@ -118,7 +118,7 @@ class LTPLE_Integrator_Imgur extends LTPLE_Client_Integrator {
 				wp_redirect($this->oauth_url);
 				echo 'Redirecting imgur oauth...';
 				exit;
-			}			
+			}	
 		}
 		elseif( $action = $this->parent->session->get_user_data('action') ){
 			
@@ -196,10 +196,11 @@ class LTPLE_Integrator_Imgur extends LTPLE_Client_Integrator {
 				}
 			}
 
-			//flush session
-					
-			$this->reset_session();
 		}
+
+		//flush session
+					
+		$this->reset_session();
 	}
 	
 	public function reset_session(){
