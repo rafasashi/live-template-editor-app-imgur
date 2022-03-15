@@ -47,8 +47,8 @@ class SessionCookieJar extends CookieJar
                 $json[] = $cookie->toArray();
             }
         }
-
-        $_SESSION[$this->sessionKey] = json_encode($json);
+		
+		set_transient('imgur_app_session_'. $this->sessionKey,json_encode($json), 60 * 60 );
     }
 
     /**
@@ -56,16 +56,16 @@ class SessionCookieJar extends CookieJar
      */
     protected function load()
     {
-        if (!isset($_SESSION[$this->sessionKey])) {
-            return;
-        }
-        $data = json_decode($_SESSION[$this->sessionKey], true);
-        if (is_array($data)) {
-            foreach ($data as $cookie) {
-                $this->setCookie(new SetCookie($cookie));
-            }
-        } elseif (strlen($data)) {
-            throw new \RuntimeException("Invalid cookie data");
+		
+        if ( $data = get_transient('imgur_app_session_'. $this->sessionKey)) {
+			$data = json_decode($data, true);
+			if (is_array($data)) {
+				foreach ($data as $cookie) {
+					$this->setCookie(new SetCookie($cookie));
+				}
+			} elseif (strlen($data)) {
+				throw new \RuntimeException("Invalid cookie data");
+			}
         }
     }
 }
