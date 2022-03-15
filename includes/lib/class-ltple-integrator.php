@@ -2,38 +2,20 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-class LTPLE_Integrator_Imgur {
-	
-	var $parent;
-	var $apps;
-	
-	/**
-	 * Constructor function
-	 */
-	public function __construct ( $app_slug, $parent, $apps ) {
-		
-		$this->parent 		= $parent;
-		$this->parent->apps = $apps;
+class LTPLE_Integrator_Imgur extends LTPLE_Client_Integrator {
 
-		// get app term
-
-		$this->term = get_term_by('slug',$app_slug,'app-type');
+	public function init_app() {
 		
-		// get app parameters
-		
-		$parameters = get_option('parameters_'.$app_slug);
-		
-		if( isset($parameters['key']) ){
+		if( isset($this->parameters['key']) ){
 			
-			$imgur_consumer_key 		= array_search('imgur_consumer_key', $parameters['key']);
-			$imgur_consumer_secret 		= array_search('imgur_consumer_secret', $parameters['key']);
+			$imgur_consumer_key 		= array_search('imgur_consumer_key', $this->parameters['key']);
+			$imgur_consumer_secret 		= array_search('imgur_consumer_secret', $this->parameters['key']);
 			$imgur_oauth_callback 		= $this->parent->urls->apps;
 
-			if( !empty($parameters['value'][$imgur_consumer_key]) && !empty($parameters['value'][$imgur_consumer_secret]) ){
+			if( !empty($this->parameters['value'][$imgur_consumer_key]) && !empty($this->parameters['value'][$imgur_consumer_secret]) ){
 			
-				define('CONSUMER_KEY', 		$parameters['value'][$imgur_consumer_key]);
-				define('CONSUMER_SECRET', 	$parameters['value'][$imgur_consumer_secret]);
-				//define('OAUTH_CALLBACK', 	$imgur_oauth_callback);
+				define('CONSUMER_KEY', 		$this->parameters['value'][$imgur_consumer_key]);
+				define('CONSUMER_SECRET', 	$this->parameters['value'][$imgur_consumer_secret]);
 				
 				// get current action
 				
@@ -41,9 +23,9 @@ class LTPLE_Integrator_Imgur {
 					
 					$this->action = $_REQUEST['action'];
 				}
-				elseif(!empty($_SESSION['action'])){
+				elseif( $action = $this->parent->session->get_user_data('action') ){
 					
-					$this->action = $_SESSION['action'];
+					$this->action = $action;
 				}
 				
 				$methodName = 'app'.ucfirst($this->action);
@@ -55,19 +37,17 @@ class LTPLE_Integrator_Imgur {
 			}
 			else{
 				
-				$_SESSION['message'] = '<div class="alert alert-danger">';
+				$message = '<div class="alert alert-danger">';
 					
-					$_SESSION['message'] .= 'Sorry, imgur is not available on this platform yet, please contact the dev team...';
+					$message .= 'Sorry, imgur is not yet available on this platform, please contact the dev team...';
 						
-				$_SESSION['message'] .= '</div>';				
+				$message .= '</div>';
+
+				$this->parent->session->update_user_data('message',$message);
 			}
 		}
 	}
 	
-	public function init_app(){	
-		
-	}
-
 	public function appImportImg(){
 	
 		if(!empty($_REQUEST['id'])){
@@ -127,11 +107,11 @@ class LTPLE_Integrator_Imgur {
 
 		if( isset($_REQUEST['action']) ){
 			
-			if(!isset($_SESSION['token'])){
+			if( !$token = $this->parent->session->get_user_data('token') ){
 
-				$_SESSION['app'] 				= 'imgur';
-				$_SESSION['action'] 			= $_REQUEST['action'];
-				$_SESSION['ref'] 				= ( !empty($_REQUEST['ref']) ? $this->parent->request->proto . urldecode($_REQUEST['ref']) : '');
+				$this->parent->session->update_user_data('app','imgur');
+				$this->parent->session->update_user_data('action',$_REQUEST['action']);
+				$this->parent->session->update_user_data('ref',( !empty($_REQUEST['ref']) ? $this->parent->request->proto . urldecode($_REQUEST['ref']) : ''));
 
 				$this->oauth_url = $client->getAuthenticationUrl();
 			
@@ -140,9 +120,9 @@ class LTPLE_Integrator_Imgur {
 				exit;
 			}			
 		}
-		elseif( isset($_SESSION['action']) ){
+		elseif( $action = $this->parent->session->get_user_data('action') ){
 			
-			if(!isset($_SESSION['access_token'])){
+			if( !$access_token = $this->parent->session->get_user_data('access_token') ){
 				
 				// handle connect callback
 				
@@ -154,15 +134,11 @@ class LTPLE_Integrator_Imgur {
 					
 					$this->access_token = $client->getAccessToken();
 					
-					if(!empty($_SESSION)){
-						
-						//flush session
-						
-						$_SESSION = array();			
-					}					
+					$this->reset_session();					
 					
 					//store access_token in session					
-					$_SESSION['access_token'] = $this->access_token;
+				
+					$this->parent->session->update_user_data('access_token',$this->access_token);
 					
 					if(!empty($this->access_token['account_username'])){
 
@@ -202,12 +178,8 @@ class LTPLE_Integrator_Imgur {
 						update_post_meta( $app_id, 'appData', json_encode($this->access_token,JSON_PRETTY_PRINT));
 					}
 					
-					if(!empty($_SESSION['ref'])){
-						
-						$redirect_url = $_SESSION['ref'];
-						
-						$_SESSION['ref'] = '';
-						
+					if( $redirect_url = $this->parent->session->get_user_data('ref') ){
+
 						wp_redirect($redirect_url);
 						echo 'Redirecting imgur callback...';
 						exit;	
@@ -216,20 +188,31 @@ class LTPLE_Integrator_Imgur {
 						
 						// store success message
 
-						$_SESSION['message'] = '<div class="alert alert-success">';
+						$message = '<div class="alert alert-success">';
 							
-							$_SESSION['message'] .= 'Congratulations, you have successfully connected an Imgur account!';
+							$message .= 'Congratulations, you have successfully connected an Imgur account!';
 								
-						$_SESSION['message'] .= '</div>';						
+						$message .= '</div>';
+
+						$this->parent->session->update_user_data('message',$message);
 					}
 				}
-				elseif(!empty($_SESSION)){
+				else{
 						
 					//flush session
 						
-					$_SESSION = array();			
+					$this->reset_session();
 				}	
 			}
 		}
 	}
+	
+	public function reset_session(){
+		
+		$this->parent->session->update_user_data('token','');
+		$this->parent->session->update_user_data('access_token','');
+		$this->parent->session->update_user_data('ref',$this->get_ref_url());		
+		
+		return true;
+	}	
 } 

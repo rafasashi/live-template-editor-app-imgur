@@ -1,7 +1,7 @@
 <?php
 /*
  * Plugin Name: Live Template Editor App Imgur
- * Version: 1.0
+ * Version: 1.0.0.2
  * Plugin URI: https://github.com/rafasashi
  * Description: Imgur API integrator for Live Template Editor.
  * Author: Rafasashi
