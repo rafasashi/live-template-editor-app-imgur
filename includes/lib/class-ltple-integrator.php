@@ -104,17 +104,17 @@ class LTPLE_Integrator_Imgur extends LTPLE_Client_Integrator {
 		$client = new \Imgur\Client();
 		$client->setOption('client_id', CONSUMER_KEY);
 		$client->setOption('client_secret', CONSUMER_SECRET);
-
+		
 		if( isset($_REQUEST['action']) ){
 			
-			if( !$token = $this->parent->session->get_user_data('token') ){
+			if( !$token = $this->parent->session->get_user_data('access_token') ){
 
 				$this->parent->session->update_user_data('app','imgur');
 				$this->parent->session->update_user_data('action',$_REQUEST['action']);
-				$this->parent->session->update_user_data('ref',( !empty($_REQUEST['ref']) ? $this->parent->request->proto . urldecode($_REQUEST['ref']) : ''));
+				$this->parent->session->update_user_data('ref',$this->get_ref_url());
 
 				$this->oauth_url = $client->getAuthenticationUrl();
-			
+				
 				wp_redirect($this->oauth_url);
 				echo 'Redirecting imgur oauth...';
 				exit;
@@ -122,94 +122,88 @@ class LTPLE_Integrator_Imgur extends LTPLE_Client_Integrator {
 		}
 		elseif( $action = $this->parent->session->get_user_data('action') ){
 			
-			if( !$access_token = $this->parent->session->get_user_data('access_token') ){
-				
-				// handle connect callback
-				
-				if(isset($_REQUEST['code'])){
-					
-					//get access_token
-					
-					$client->requestAccessToken($_REQUEST['code']);
-					
-					$this->access_token = $client->getAccessToken();
-					
-					$this->reset_session();					
-					
-					//store access_token in session					
-				
-					$this->parent->session->update_user_data('access_token',$this->access_token);
-					
-					if(!empty($this->access_token['account_username'])){
+			// handle connect callback
+			
+			$access_token = $this->parent->session->get_user_data('access_token');
 
-						// store access_token in database		
-						
-						$app_title = wp_strip_all_tags( 'imgur - ' . $this->access_token['account_username'] );
-						
-						$app_item = get_page_by_title( $app_title, OBJECT, 'user-app' );
-						
-						if( empty($app_item) ){
-							
-							// create app item
-							
-							$app_id = wp_insert_post(array(
-							
-								'post_title'   	 	=> $app_title,
-								'post_status'   	=> 'publish',
-								'post_type'  	 	=> 'user-app',
-								'post_author'   	=> $this->parent->user->ID
-							));
-							
-							wp_set_object_terms( $app_id, $this->term->term_id, 'app-type' );
-							
-							// hook connected app
-							
-							do_action( 'ltple_imgur_account_connected');
-							
-							$this->parent->apps->newAppConnected();							
-						}
-						else{
+			if( empty($access_token) && isset($_REQUEST['code'])){
+				
+				//get access_token
+				
+				$client->requestAccessToken($_REQUEST['code']);
+				
+				$this->access_token = $client->getAccessToken();
+				
+				//store access_token in session					
+			
+				$this->parent->session->update_user_data('access_token',$this->access_token);
+				
+				if(!empty($this->access_token['account_username'])){
 
-							$app_id = $app_item->ID;
-						}
-							
-						// update app item
-							
-						update_post_meta( $app_id, 'appData', json_encode($this->access_token,JSON_PRETTY_PRINT));
-					}
+					// store access_token in database		
 					
-					if( $redirect_url = $this->parent->session->get_user_data('ref') ){
-
-						wp_redirect($redirect_url);
-						echo 'Redirecting imgur callback...';
-						exit;	
+					$app_title = wp_strip_all_tags( 'imgur - ' . $this->access_token['account_username'] );
+					
+					$app_item = get_page_by_title( $app_title, OBJECT, 'user-app' );
+					
+					if( empty($app_item) ){
+						
+						// create app item
+						
+						$app_id = wp_insert_post(array(
+						
+							'post_title'   	 	=> $app_title,
+							'post_status'   	=> 'publish',
+							'post_type'  	 	=> 'user-app',
+							'post_author'   	=> $this->parent->user->ID
+						));
+						
+						wp_set_object_terms( $app_id, $this->term->term_id, 'app-type' );
+						
+						// hook connected app
+						
+						do_action( 'ltple_imgur_account_connected');
+						
+						$this->parent->apps->newAppConnected();							
 					}
 					else{
-						
-						// store success message
 
-						$message = '<div class="alert alert-success">';
-							
-							$message .= 'Congratulations, you have successfully connected an Imgur account!';
-								
-						$message .= '</div>';
-
-						$this->parent->session->update_user_data('message',$message);
+						$app_id = $app_item->ID;
 					}
+						
+					// update app item
+						
+					update_post_meta( $app_id, 'appData', json_encode($this->access_token,JSON_PRETTY_PRINT));
 				}
-				else{
+				
+				// store success message
+
+				$message = '<div class="alert alert-success">';
+					
+					$message .= 'Congratulations, you have successfully connected an Imgur account!';
 						
-					//flush session
-						
-					$this->reset_session();
-				}	
+				$message .= '</div>';
+
+				$this->parent->session->update_user_data('message',$message);				
+				
+				if( $redirect_url = $this->parent->session->get_user_data('ref') ){
+
+					wp_redirect($redirect_url);
+					echo 'Redirecting imgur callback...';
+					exit;	
+				}
 			}
+
+			//flush session
+					
+			$this->reset_session();
 		}
 	}
 	
 	public function reset_session(){
 		
-		$this->parent->session->update_user_data('token','');
+		$this->parent->session->update_user_data('app','');
+		$this->parent->session->update_user_data('action','');
 		$this->parent->session->update_user_data('access_token','');
 		$this->parent->session->update_user_data('ref',$this->get_ref_url());		
 		
