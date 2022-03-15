@@ -134,6 +134,8 @@ class LTPLE_Integrator_Imgur extends LTPLE_Client_Integrator {
 				
 				$this->access_token = $client->getAccessToken();
 				
+				$this->reset_session();
+				
 				//store access_token in session					
 			
 				$this->parent->session->update_user_data('access_token',$this->access_token);
@@ -187,7 +189,7 @@ class LTPLE_Integrator_Imgur extends LTPLE_Client_Integrator {
 				$this->parent->session->update_user_data('message',$message);				
 				
 				if( $redirect_url = $this->parent->session->get_user_data('ref') ){
-
+	
 					wp_redirect($redirect_url);
 					echo 'Redirecting imgur callback...';
 					exit;	
