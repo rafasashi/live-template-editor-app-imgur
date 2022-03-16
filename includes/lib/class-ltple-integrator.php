@@ -17,22 +17,11 @@ class LTPLE_Integrator_Imgur extends LTPLE_Client_Integrator {
 				define('CONSUMER_KEY', 		$this->parameters['value'][$imgur_consumer_key]);
 				define('CONSUMER_SECRET', 	$this->parameters['value'][$imgur_consumer_secret]);
 				
-				// get current action
+				// init action
+		
+				if( $action = $this->get_current_action() ){
 				
-				if(!empty($_REQUEST['action'])){
-					
-					$this->action = $_REQUEST['action'];
-				}
-				elseif( $action = $this->parent->session->get_user_data('action') ){
-					
-					$this->action = $action;
-				}
-				
-				$methodName = 'app'.ucfirst($this->action);
-
-				if(method_exists($this,$methodName)){
-					
-					$this->$methodName();
+					$this->init_action($action);
 				}
 			}
 			else{
@@ -109,7 +98,7 @@ class LTPLE_Integrator_Imgur extends LTPLE_Client_Integrator {
 			
 			if( !$access_token = $this->parent->session->get_user_data('access_token') ){
 
-				$this->parent->session->update_user_data('app','imgur');
+				$this->parent->session->update_user_data('app',$this->app_slug);
 				$this->parent->session->update_user_data('action',$_REQUEST['action']);
 				$this->parent->session->update_user_data('ref',$this->get_ref_url());
 
